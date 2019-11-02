@@ -24,8 +24,8 @@ function preprocess_data(loaddir, wdir, patdat, option, k, cl_opt)
 %   warranties whatsoever.
 
 if nargin < 5 || strcmp(k, 'all')                                           % argument which ensures that all data is inserted correctly
-    k = 1:size(patdat,1);
-    cl_opt = 0;                                                             % (cl_opt) is only possible if one subject is analysed)
+    %k = 1:size(patdat,1);
+    k = find(patdat.group == '1').';                                        % select only patients from the list of interest
 elseif nargin < 6
     cl_opt = 0;                                                             % (cl_opt) is only possible if one subject is analysed)
 end
@@ -59,7 +59,7 @@ for k = k % loop through all available subjects/ all subjects in the list
             done = 0; close all;                                            % will be needed later, for a while argument to run until data is completed
             pat = char(patdat.pseud(k));
             
-            try load(filename);                                             % loads data into workspace to work with it
+            try load(filename);                                             %#ok<*LOAD> % loads data into workspace to work with it
             catch
                 fprintf('\nsubj %s not found, please specify pseudonym correctly/n', pat);
                 continue
@@ -127,6 +127,7 @@ for k = k % loop through all available subjects/ all subjects in the list
             dur     =   10;                                                 % total duration of data (in secs.)
             srEMG   =   200;                                                % sampling rate EMG
             srIMU   =   50;                                                 % sampling rate IMU
+            bpf     =   [1 15];                                             % bandpass filters for IMU preprocessing
             
             try load(filename);                                             % loads data into workspace to work with it
             catch
@@ -138,7 +139,7 @@ for k = k % loop through all available subjects/ all subjects in the list
                 strcat('data_epoched', char(patdat.pseud(k)), '.mat');      % filename under which data will be saved at the end
             savename = fullfile(wdir, 'analyses', 'epoched', savefile);     % entire filename including folders
             
-            if ~exist(savename, 'file')                                      % checks if data is already present and continues if so in order to avoid redundancy
+            if (exist(savename, 'file') && cl_opt == 0)                     % checks if data is already present and if the clearing option is inactive and continues if so in order to avoid redundancy
                 continue;
             else
                 %% Pre-allocate space to fill later with data
@@ -179,72 +180,55 @@ for k = k % loop through all available subjects/ all subjects in the list
                     for p = 1:size(par,1) % loop through all available conditions and extract available data
                         clear idx_conds dattemp*;
                         idx_cond = find(strcmp(s{recs}.tble(idx,3), par{p}));  % idx of the condition to be extracted
-                        fx_reshape1 = ...
-                            @(x) reshape(x, [dur*srIMU, 3, length(idx_cond)]);  % formula to reshape IMU recordings, in order to get one sensor x [trials*time] matrix instead of trials x time x sensor
-                        fx_reshape2 = ...
-                            @(x) reshape(x, [dur*srEMG, 8, length(idx_cond)]); % formula to reshape EMG recordings, in order to get one sensor x [trials*time] matrix instead of trials x time x sensor
                         
-                        dattemp_acc = []; dattemp_gyro = []; dattemp_emg = [];
                         for tr = 1:size(idx_cond,1) % loop though all trials to obtain data per trial
                             if isempty(imu_acc{p,c})
-                                imu_acc{p,c}(:,:,1) = s{recs}.accel(trldat{1}(idx_cond(tr),:).',:);
-                                imu_gyro{p,c}(:,:,1) = s{recs}.gyro(trldat{1}(idx_cond(tr),:).',:);
-                                emg{p,c}(:,:,1) = s{recs}.emg(trldat{2}(idx_cond(tr),:).',:);
+                                imu_acc{p,c}(:,:,1) = ...
+                                    s{recs}.accel(trldat{1}(idx_cond(tr),:).',:);
+                                imu_gyro{p,c}(:,:,1) = ...
+                                    s{recs}.gyro(trldat{1}(idx_cond(tr),:).',:);
+                                emg{p,c}(:,:,1) = ...
+                                    s{recs}.emg(trldat{2}(idx_cond(tr),:).',:);
                             else
-                                imu_acc{p,c}(:,:,end+1) = s{recs}.accel(trldat{1}(idx_cond(tr),:).',:);
-                                imu_gyro{p,c}(:,:,end+1) = s{recs}.gyro(trldat{1}(idx_cond(tr),:).',:);
-                                emg{p,c}(:,:,end+1) = s{recs}.emg(trldat{2}(idx_cond(tr),:).',:);
+                                imu_acc{p,c}(:,:,end+1) = ...
+                                    s{recs}.accel(trldat{1}(idx_cond(tr),:).',:);
+                                imu_gyro{p,c}(:,:,end+1) = ...
+                                    s{recs}.gyro(trldat{1}(idx_cond(tr),:).',:);
+                                emg{p,c}(:,:,end+1) = ...
+                                    s{recs}.emg(trldat{2}(idx_cond(tr),:).',:);
                             end
-                            %                             dattemp_acc(:,:,tr) = s{recs}.accel(trldat{1}(idx_cond(tr),:).',:);
-                            %                             dattemp_gyro(:,:,tr) = s{recs}.gyro(trldat{1}(idx_cond(tr),:).',:);
-                            %                             dattemp_emg(:,:,tr) = s{recs}.emg(trldat{2}(idx_cond(tr),:).',:);
                         end
-                        
-                        %                             imu_acc{p,c} = cat(3, imu_acc{p,c}, dattemp_acc);
-                        %                             imu_gyro{p,c} = cat(3, dattemp_gyro);
-                        %                             emg{p,c} = cat(3, dattemp_emg);
-                        
-                        %                         imu_acc{p,c} = ...                                      % the next few lines concatenate data into 3d matrices to be further processed
-                        %                             cat(3, imu_acc{p,c}, ...
-                        %                             fx_reshape1(s{recs}.accel(trldat{1}(idx_cond,:).',:)));
-                        %                         imu_gyro{p,c} = ...
-                        %                             cat(3, imu_gyro{p,c}, ...
-                        %                             fx_reshape1(s{recs}.gyro(trldat{1}(idx_cond,:).',:)));
-                        %                         emg{p,c} = ...
-                        %                             cat(3, emg{p,c}, ...
-                        %                             fx_reshape2(s{recs}.emg(trldat{2}(idx_cond,:),:)));
                     end
                 end
                 
                 if isempty(bt{k}) || any(isnan(bt{k})) % if bt is neither empty nor NaN; otherwise, error is provided
-                    %% start plotting data;
+                    %% Plot data in order so the the results of cutting data into chunks;
                     nums = {[1:4;5:8], [9:12;13:16], [17:20;21:24]} ;
                     for c = 1:2 % loop through conditions
                         if c == 1; cond = 'OFF'; else; cond = 'ON'; end
                         yls = [min(fx_all(cat(3,imu_acc{:}))), ...
                             max(fx_all(cat(3,imu_acc{:})))];
                         arrayfun(@(q) plot_epoched_data(imu_acc{q,c}, pat, ...
-                            par{q}, cond, nums{1}(c,q), 50, 'ACC', yls), 1:size(imu_acc,1), 'Un', 0)
+                            par{q}, cond, nums{1}(c,q), srIMU, 'ACC', yls), 1:size(imu_acc,1), 'Un', 0)
                         
                         yls = [min(fx_all(cat(3,imu_gyro{:}))), ...
                             max(fx_all(cat(3,imu_gyro{:})))];
                         arrayfun(@(q) plot_epoched_data(imu_gyro{q,c}, pat, ...
-                            par{q}, cond, nums{2}(c,q), 50, 'GYRO', yls), 1:size(imu_gyro,1), 'Un', 0)
-                        %                 arrayfun(@(q) plot_epoched_data(emg{q,c}, pat, ...
-                        %                     par{q}, cond, nums{3}(c,q), 50, 'EMG'), 1:size(imu_gyro,1), 'Un', 0)
+                            par{q}, cond, nums{2}(c,q), srIMU, 'GYRO', yls), 1:size(imu_gyro,1), 'Un', 0)
                     end
                     fprintf('\nPlease extract bad trials for all conditions and motor tasks for subj: %s \nfrom the figures and save them. Press Continue (or F5 BTW!) to continue with script\n', pat);
                     keyboard;
+                
                 else
                     clear idx; idx = 1:8;
-                    if strcmp(s{1}.tble(1,5), 'CTRL'); idx = 1:4; end
+                    if strcmp(s{1}.tble(1,5), 'CTRL'); idx = 1:4; end       % this line ensures, that CTRL subjects are treated differently
                     [dat_preproc_acc_nopca, dat_preproc_acc_pca] = ...
-                        preproc_imu(imu_acc, {bt{k,idx}}, 2, [1 15], 50, 0);      % band pass filter data between [1 20] Hz amd usinf a 2nd Order Butterworth filter
+                        preproc_imu(imu_acc, {bt{k,idx}}, 2, bpf, srIMU, 0);% band pass filter data between [1 20] Hz amd usinf a 2nd Order Butterworth filter
                     [dat_preproc_gyro_nopca, dat_preproc_gyro_pca] = ...
-                        preproc_imu(imu_gyro, {bt{k,idx}}, 2, [1 15], 50, 0);
+                        preproc_imu(imu_gyro, {bt{k,idx}}, 2, bpf, srIMU, 0);
                     
                     dat_preproc_emg = ...
-                        preproc_emg(emg, {bt{k,idx}}, 2, 20, 35, 200, 0);         % Filter EMG data High- and lowpass filter and rectify in between
+                        preproc_emg(emg, {bt{k,idx}}, 2, 20, 35, srEMG, 0); % Filter EMG data High- and lowpass filter and rectify in between
                     
                     savedata2csv(dat_preproc_acc_nopca, wdir, ...
                         char(patdat.pseud(k)), 'ACC', 'nopca')

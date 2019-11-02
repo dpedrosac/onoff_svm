@@ -8,7 +8,7 @@ ft_defaults
 wdir = strcat('C:\Users\', usr, '\Jottacloud\onoff_svm\');
 
 %%
-adap = 4;
+adap = 3;
 patdat = pat_list(wdir);
 fprintf('\na total of %d patients and %d control-subjects is analysed...\n', sum(double(patdat.group) == 1), sum(double(patdat.group) == 2))
 
@@ -27,7 +27,7 @@ for n = 1:numel(adap)
             
         case (4)
             preprocess_data(fullfile(wdir, 'analyses', 'raw_data\'), ...
-                wdir, patdat, 'cut','all')
+                wdir, patdat, 'cut',8,1)
             
         case (99)
             general_data(patdat)
