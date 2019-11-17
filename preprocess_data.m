@@ -26,6 +26,7 @@ function preprocess_data(loaddir, wdir, patdat, option, k, cl_opt)
 if nargin < 5 || strcmp(k, 'all')                                           % argument which ensures that all data is inserted correctly
     %k = 1:size(patdat,1);
     k = find(patdat.group == '1').';                                        % select only patients from the list of interest
+    cl_opt = 0;
 elseif nargin < 6
     cl_opt = 0;                                                             % (cl_opt) is only possible if one subject is analysed)
 end

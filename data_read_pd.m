@@ -58,9 +58,9 @@ for k = 1:size(patdat,1) % loop through all available subjects
         continue
     else
         for c = 1:2%numel(conds) % loop through different conditions, i.e. 'OFF and ON' or only 'CTRL'
-            %if c == 1; s_opt = 2; else; s_opt = 1; end hacl for 69... as
+            if c == 1; s_opt = 2; else; s_opt = 1; end %hack for 69... as
             %there were only three recordings available.
-            for sess = 1:s_opt % loop though different sessions; for stability reasons ad to avoid data losses, two sessions were needed during data recording
+            for sess = 1:2 % loop though different sessions; for stability reasons ad to avoid data losses, two sessions were needed during data recording
                 iter = iter + 1;
                 %% define the filenames and names of folders in order to obtain data
                 recname = strcat(psdnym, '_', conds{c}, '_', num2str(iter)); % name of the raw data file under "normal conditions"; this is chedked in the newt few lines and may be chaged manually
