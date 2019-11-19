@@ -61,7 +61,7 @@ for k = 1:size(dat,1) % loop through available conditions
             cond, '_', type, '_trial',  num2str(m), '_', option, '.txt'));
 
         if strcmp(option, 'nopca')
-            fid = fopen(filename, 'w');
+            fid = fopen(filename, 'w'); % new way of saving csv-files in order to prevent routines only available in new versions of MATLAB
             formatSpec = strcat(repmat('%.16f\t', [1, size(dat{k},2)-1]), '.16f\n');
             fprintf(fid,formatSpec,squeeze(dat{k}(:,:,m)));            
             fclose(fid);
