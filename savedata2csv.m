@@ -61,11 +61,22 @@ for k = 1:size(dat,1) % loop through available conditions
             cond, '_', type, '_trial',  num2str(m), '_', option, '.txt'));
 
         if strcmp(option, 'nopca')
-            writematrix(squeeze(dat{k}(:,:,m)),filename,'Delimiter','tab')  % the next few lines write the data to a txt-file
-            writematrix(squeeze(dat{k}(:,:,m)),filename2,'Delimiter','tab')  % the next few lines write the data to a txt-file
+            fid = fopen(filename, 'w');
+            formatSpec = strcat(repmat('%.16f\t', [1, size(dat{k},2)-1]), '.16f\n');
+            fprintf(fid,formatSpec,squeeze(dat{k}(:,:,m)));            
+            fclose(fid);
+
+            fid = fopen(filename2, 'w');
+            fprintf(fid,formatSpec,squeeze(dat{k}(:,:,m)));            
+            fclose(fid);
 
         else
-            writematrix(squeeze(dat{k}(:,m)),filename,'Delimiter','tab')  % the next few lines write the data to a txt-file
+            
+            fid = fopen(filename, 'w');
+            formatSpec = '%0.16f\n';
+            fprintf(fid,formatSpec,squeeze(dat{k}(:,m)));            
+            fclose(fid);
+            
         end
     end
 end
